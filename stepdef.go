@@ -81,25 +81,34 @@ func (sd *StepDef) definitionID() string {
 // run a step with the matched arguments using
 // reflect
 func (sd *StepDef) run(state *ScenarioState) interface{} {
+	var firstArgIsState bool
 	typ := sd.hv.Type()
 	if typ.NumIn() == 0 {
 		return fmt.Errorf(`handler func requires at least one arg, *ScenarioState`)
 	}
 
-	if typ.In(0).Kind() != reflect.Ptr || typ.In(0).Elem() != reflect.TypeOf(ScenarioState{}) {
-		return fmt.Errorf(`handler func's first arg must be *ScenarioState`)
+	var values []reflect.Value
+	if typ.In(0).Kind() == reflect.Ptr && typ.In(0).Elem() == reflect.TypeOf(ScenarioState{}) {
+		firstArgIsState = true
+		values = append(values, reflect.ValueOf(state))
 	}
 
 	// subtract one from number of inputs as one is the static *ScenarioState
-	numNonStateArgs := typ.NumIn() - 1
+	numNonStateArgs := typ.NumIn()
+	if firstArgIsState {
+		numNonStateArgs = typ.NumIn() - 1
+	}
+
 	if len(sd.args) < numNonStateArgs {
 		return fmt.Errorf("func expects %d arguments, which is more than %d matched from step", numNonStateArgs, len(sd.args))
 	}
 
-	var values []reflect.Value
-	values = append(values, reflect.ValueOf(state))
-	for i := 0; i < numNonStateArgs; i++ {
-		param := typ.In(i + 1)
+	for i := range sd.args {
+		param := typ.In(i)
+		if firstArgIsState {
+			param = typ.In(i + 1)
+		}
+
 		switch param.Kind() {
 		case reflect.Int:
 			s, err := sd.shouldBeString(i)
