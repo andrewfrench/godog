@@ -114,8 +114,6 @@ type Suite struct {
 	afterSuiteHandlers     []func()
 }
 
-type ScenarioState map[string]interface{}
-
 // Step allows to register a *StepDef in Godog
 // feature suite, the definition will be applied
 // to all steps matching the given Regexp expr.

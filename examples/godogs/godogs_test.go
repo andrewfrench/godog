@@ -31,21 +31,21 @@ func TestMain(m *testing.M) {
 	os.Exit(status)
 }
 
-func thereAreGodogs(state *godog.ScenarioState, available int) error {
-	(*state)["godogs"] = available
+func thereAreGodogs(s *godog.ScenarioState, available int) error {
+	s.Set("godogs", available)
 	return nil
 }
 
-func iEat(state *godog.ScenarioState, num int) error {
-	if (*state)["godogs"].(int) < num {
+func iEat(s *godog.ScenarioState, num int) error {
+	if s.Get("godogs").(int) < num {
 		return fmt.Errorf("you cannot eat %d godogs, there are %d available", num, Godogs)
 	}
-	(*state)["godogs"] = (*state)["godogs"].(int) - num
+	s.Set("godogs", s.Get("godogs").(int) - num)
 	return nil
 }
 
-func thereShouldBeRemaining(state *godog.ScenarioState, remaining int) error {
-	if (*state)["godogs"].(int) != remaining {
+func thereShouldBeRemaining(s *godog.ScenarioState, remaining int) error {
+	if s.Get("godogs").(int) != remaining {
 		return fmt.Errorf("expected %d godogs to be remaining, but there is %d", remaining, Godogs)
 	}
 	return nil
