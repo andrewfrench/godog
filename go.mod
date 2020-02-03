@@ -1,6 +1,6 @@
-module github.com/DATA-DOG/godog
+module github.com/andrewfrench/godog
 
-go 1.12
+go 1.13
 
 require (
 	github.com/DATA-DOG/go-txdb v0.1.3
