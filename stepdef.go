@@ -179,20 +179,14 @@ func (sd *StepDef) run(state *ScenarioState) interface{} {
 			values = append(values, reflect.ValueOf(float32(v)))
 		case reflect.Ptr:
 			arg := sd.args[i]
-			switch param.Elem() {
-			case reflect.TypeOf(ScenarioState{}):
-				v, ok := arg.(*ScenarioState)
-				if !ok {
-					return fmt.Errorf(`cannot convert argument %d: "%v" of type "%T" to *ScenarioState`, i, arg, arg)
-				}
-				values = append(values, reflect.ValueOf(v))
-			case reflect.TypeOf(gherkin.DocString{}): // "gherkin.DocString":
+			switch param.Elem().String() {
+			case "gherkin.DocString":
 				v, ok := arg.(*gherkin.DocString)
 				if !ok {
 					return fmt.Errorf(`cannot convert argument %d: "%v" of type "%T" to *gherkin.DocString`, i, arg, arg)
 				}
 				values = append(values, reflect.ValueOf(v))
-			case reflect.TypeOf(gherkin.DataTable{}): // "gherkin.DataTable":
+			case "gherkin.DataTable":
 				v, ok := arg.(*gherkin.DataTable)
 				if !ok {
 					return fmt.Errorf(`cannot convert argument %d: "%v" of type "%T" to *gherkin.DocString`, i, arg, arg)
