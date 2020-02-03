@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/DATA-DOG/godog/gherkin"
+	"github.com/andrewfrench/godog/gherkin"
 )
 
 var matchFuncDefRef = regexp.MustCompile(`\(([^\)]+)\)`)
@@ -84,6 +84,10 @@ func (sd *StepDef) run(state *ScenarioState) interface{} {
 	typ := sd.hv.Type()
 	if typ.NumIn() == 0 {
 		return fmt.Errorf(`handler func requires at least one arg, *ScenarioState`)
+	}
+
+	if typ.In(0).Kind() != reflect.Ptr || typ.In(0).Elem() != reflect.TypeOf(ScenarioState{}) {
+		return fmt.Errorf(`handler func's first arg must be *ScenarioState`)
 	}
 
 	// subtract one from number of inputs as one is the static *ScenarioState

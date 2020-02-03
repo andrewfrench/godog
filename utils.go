@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DATA-DOG/godog/colors"
+	"github.com/andrewfrench/godog/colors"
 )
 
 var (

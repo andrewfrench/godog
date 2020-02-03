@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/DATA-DOG/godog/gherkin"
+	"github.com/andrewfrench/godog/gherkin"
 )
 
 func init() {

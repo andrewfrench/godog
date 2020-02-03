@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/DATA-DOG/godog"
-	"github.com/DATA-DOG/godog/colors"
+	"github.com/andrewfrench/godog"
+	"github.com/andrewfrench/godog/colors"
 )
 
 var parsedStatus int

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/DATA-DOG/godog/colors"
-	"github.com/DATA-DOG/godog/gherkin"
+	"github.com/andrewfrench/godog/colors"
+	"github.com/andrewfrench/godog/gherkin"
 )
 
 func init() {

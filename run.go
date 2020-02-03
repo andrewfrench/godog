@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/DATA-DOG/godog/colors"
+	"github.com/andrewfrench/godog/colors"
 )
 
 const (

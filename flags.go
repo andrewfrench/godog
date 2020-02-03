@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DATA-DOG/godog/colors"
+	"github.com/andrewfrench/godog/colors"
 )
 
 var descFeaturesArgument = "Optional feature(s) to run. Can be:\n" +

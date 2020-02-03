@@ -27,7 +27,7 @@ var builderTestFile = `package godogs
 import (
 	"fmt"
 
-	"github.com/DATA-DOG/godog"
+	"github.com/andrewfrench/godog"
 )
 
 func thereAreGodogs(available int) error {
@@ -66,7 +66,7 @@ var builderXTestFile = `package godogs_test
 import (
 	"fmt"
 
-	"github.com/DATA-DOG/godog"
+	"github.com/andrewfrench/godog"
 	"godogs"
 )
 
