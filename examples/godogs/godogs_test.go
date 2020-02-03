@@ -31,21 +31,21 @@ func TestMain(m *testing.M) {
 	os.Exit(status)
 }
 
-func thereAreGodogs(available int) error {
-	Godogs = available
+func thereAreGodogs(state *godog.ScenarioState, available int) error {
+	(*state)["godogs"] = available
 	return nil
 }
 
-func iEat(num int) error {
-	if Godogs < num {
+func iEat(state *godog.ScenarioState, num int) error {
+	if (*state)["godogs"].(int) < num {
 		return fmt.Errorf("you cannot eat %d godogs, there are %d available", num, Godogs)
 	}
-	Godogs -= num
+	(*state)["godogs"] = (*state)["godogs"].(int) - num
 	return nil
 }
 
-func thereShouldBeRemaining(remaining int) error {
-	if Godogs != remaining {
+func thereShouldBeRemaining(state *godog.ScenarioState, remaining int) error {
+	if (*state)["godogs"].(int) != remaining {
 		return fmt.Errorf("expected %d godogs to be remaining, but there is %d", remaining, Godogs)
 	}
 	return nil
@@ -56,7 +56,7 @@ func FeatureContext(s *godog.Suite) {
 	s.Step(`^I eat (\d+)$`, iEat)
 	s.Step(`^there should be (\d+) remaining$`, thereShouldBeRemaining)
 
-	s.BeforeScenario(func(interface{}) {
+	s.BeforeScenario(func(*godog.ScenarioState, interface{}) {
 		Godogs = 0 // clean the state before every scenario
 	})
 }

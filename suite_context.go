@@ -104,7 +104,7 @@ type suiteContext struct {
 	out         bytes.Buffer
 }
 
-func (s *suiteContext) ResetBeforeEachScenario(interface{}) {
+func (s *suiteContext) ResetBeforeEachScenario(_ *ScenarioState, _ interface{}) {
 	// reset whole suite with the state
 	s.out.Reset()
 	s.paths = []string{}
@@ -295,16 +295,16 @@ func (s *suiteContext) iAmListeningToSuiteEvents() error {
 	s.testedSuite.AfterFeature(func(ft *gherkin.Feature) {
 		s.events = append(s.events, &firedEvent{"AfterFeature", []interface{}{ft}})
 	})
-	s.testedSuite.BeforeScenario(func(scenario interface{}) {
+	s.testedSuite.BeforeScenario(func(state *ScenarioState, scenario interface{}) {
 		s.events = append(s.events, &firedEvent{"BeforeScenario", []interface{}{scenario}})
 	})
-	s.testedSuite.AfterScenario(func(scenario interface{}, err error) {
+	s.testedSuite.AfterScenario(func(state *ScenarioState, scenario interface{}, err error) {
 		s.events = append(s.events, &firedEvent{"AfterScenario", []interface{}{scenario, err}})
 	})
-	s.testedSuite.BeforeStep(func(step *gherkin.Step) {
+	s.testedSuite.BeforeStep(func(state *ScenarioState, step *gherkin.Step) {
 		s.events = append(s.events, &firedEvent{"BeforeStep", []interface{}{step}})
 	})
-	s.testedSuite.AfterStep(func(step *gherkin.Step, err error) {
+	s.testedSuite.AfterStep(func(state *ScenarioState, step *gherkin.Step, err error) {
 		s.events = append(s.events, &firedEvent{"AfterStep", []interface{}{step, err}})
 	})
 	return nil

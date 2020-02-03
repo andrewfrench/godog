@@ -80,14 +80,22 @@ func (sd *StepDef) definitionID() string {
 
 // run a step with the matched arguments using
 // reflect
-func (sd *StepDef) run() interface{} {
+func (sd *StepDef) run(state *ScenarioState) interface{} {
 	typ := sd.hv.Type()
-	if len(sd.args) < typ.NumIn() {
-		return fmt.Errorf("func expects %d arguments, which is more than %d matched from step", typ.NumIn(), len(sd.args))
+	if typ.NumIn() == 0 {
+		return fmt.Errorf(`handler func requires at least one arg, *ScenarioState`)
 	}
+
+	// subtract one from number of inputs as one is the static *ScenarioState
+	numNonStateArgs := typ.NumIn() - 1
+	if len(sd.args) < numNonStateArgs {
+		return fmt.Errorf("func expects %d arguments, which is more than %d matched from step", numNonStateArgs, len(sd.args))
+	}
+
 	var values []reflect.Value
-	for i := 0; i < typ.NumIn(); i++ {
-		param := typ.In(i)
+	values = append(values, reflect.ValueOf(state))
+	for i := 0; i < numNonStateArgs; i++ {
+		param := typ.In(i + 1)
 		switch param.Kind() {
 		case reflect.Int:
 			s, err := sd.shouldBeString(i)
@@ -167,14 +175,20 @@ func (sd *StepDef) run() interface{} {
 			values = append(values, reflect.ValueOf(float32(v)))
 		case reflect.Ptr:
 			arg := sd.args[i]
-			switch param.Elem().String() {
-			case "gherkin.DocString":
+			switch param.Elem() {
+			case reflect.TypeOf(ScenarioState{}):
+				v, ok := arg.(*ScenarioState)
+				if !ok {
+					return fmt.Errorf(`cannot convert argument %d: "%v" of type "%T" to *ScenarioState`, i, arg, arg)
+				}
+				values = append(values, reflect.ValueOf(v))
+			case reflect.TypeOf(gherkin.DocString{}): // "gherkin.DocString":
 				v, ok := arg.(*gherkin.DocString)
 				if !ok {
 					return fmt.Errorf(`cannot convert argument %d: "%v" of type "%T" to *gherkin.DocString`, i, arg, arg)
 				}
 				values = append(values, reflect.ValueOf(v))
-			case "gherkin.DataTable":
+			case reflect.TypeOf(gherkin.DataTable{}): // "gherkin.DataTable":
 				v, ok := arg.(*gherkin.DataTable)
 				if !ok {
 					return fmt.Errorf(`cannot convert argument %d: "%v" of type "%T" to *gherkin.DocString`, i, arg, arg)

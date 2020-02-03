@@ -15,7 +15,7 @@ type apiFeature struct {
 	resp *httptest.ResponseRecorder
 }
 
-func (a *apiFeature) resetResponse(interface{}) {
+func (a *apiFeature) resetResponse(*godog.ScenarioState, interface{}) {
 	a.resp = httptest.NewRecorder()
 }
 

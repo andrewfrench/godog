@@ -58,13 +58,15 @@ type Suite struct {
 	// suite event handlers
 	beforeSuiteHandlers    []func()
 	beforeFeatureHandlers  []func(*gherkin.Feature)
-	beforeScenarioHandlers []func(interface{})
-	beforeStepHandlers     []func(*gherkin.Step)
-	afterStepHandlers      []func(*gherkin.Step, error)
-	afterScenarioHandlers  []func(interface{}, error)
+	beforeScenarioHandlers []func(*ScenarioState, interface{})
+	beforeStepHandlers     []func(*ScenarioState, *gherkin.Step)
+	afterStepHandlers      []func(*ScenarioState, *gherkin.Step, error)
+	afterScenarioHandlers  []func(*ScenarioState, interface{}, error)
 	afterFeatureHandlers   []func(*gherkin.Feature)
 	afterSuiteHandlers     []func()
 }
+
+type ScenarioState map[string]interface{}
 
 // Step allows to register a *StepDef in Godog
 // feature suite, the definition will be applied
@@ -165,13 +167,13 @@ func (s *Suite) BeforeFeature(fn func(*gherkin.Feature)) {
 // It is a good practice to restore the default state
 // before every scenario so it would be isolated from
 // any kind of state.
-func (s *Suite) BeforeScenario(fn func(interface{})) {
+func (s *Suite) BeforeScenario(fn func(*ScenarioState, interface{})) {
 	s.beforeScenarioHandlers = append(s.beforeScenarioHandlers, fn)
 }
 
 // BeforeStep registers a function or method
 // to be run before every scenario
-func (s *Suite) BeforeStep(fn func(*gherkin.Step)) {
+func (s *Suite) BeforeStep(fn func(*ScenarioState, *gherkin.Step)) {
 	s.beforeStepHandlers = append(s.beforeStepHandlers, fn)
 }
 
@@ -184,7 +186,7 @@ func (s *Suite) BeforeStep(fn func(*gherkin.Step)) {
 //
 // In some cases, for example when running a headless
 // browser, to take a screenshot after failure.
-func (s *Suite) AfterStep(fn func(*gherkin.Step, error)) {
+func (s *Suite) AfterStep(fn func(*ScenarioState, *gherkin.Step, error)) {
 	s.afterStepHandlers = append(s.afterStepHandlers, fn)
 }
 
@@ -193,7 +195,7 @@ func (s *Suite) AfterStep(fn func(*gherkin.Step, error)) {
 //
 // The interface argument may be *gherkin.Scenario
 // or *gherkin.ScenarioOutline
-func (s *Suite) AfterScenario(fn func(interface{}, error)) {
+func (s *Suite) AfterScenario(fn func(*ScenarioState, interface{}, error)) {
 	s.afterScenarioHandlers = append(s.afterScenarioHandlers, fn)
 }
 
@@ -236,10 +238,10 @@ func (s *Suite) matchStep(step *gherkin.Step) *StepDef {
 	return def
 }
 
-func (s *Suite) runStep(step *gherkin.Step, prevStepErr error) (err error) {
+func (s *Suite) runStep(state *ScenarioState, step *gherkin.Step, prevStepErr error) (err error) {
 	// run before step handlers
 	for _, f := range s.beforeStepHandlers {
-		f(step)
+		f(state, step)
 	}
 
 	match := s.matchStep(step)
@@ -273,11 +275,11 @@ func (s *Suite) runStep(step *gherkin.Step, prevStepErr error) (err error) {
 
 		// run after step handlers
 		for _, f := range s.afterStepHandlers {
-			f(step, err)
+			f(state, step, err)
 		}
 	}()
 
-	if undef, err := s.maybeUndefined(step.Text, step.Argument); err != nil {
+	if undef, err := s.maybeUndefined(state, step.Text, step.Argument); err != nil {
 		return err
 	} else if len(undef) > 0 {
 		if match != nil {
@@ -299,11 +301,11 @@ func (s *Suite) runStep(step *gherkin.Step, prevStepErr error) (err error) {
 		return nil
 	}
 
-	err = s.maybeSubSteps(match.run())
+	err = s.maybeSubSteps(state, match.run(state))
 	return
 }
 
-func (s *Suite) maybeUndefined(text string, arg interface{}) ([]string, error) {
+func (s *Suite) maybeUndefined(state *ScenarioState, text string, arg interface{}) ([]string, error) {
 	step := s.matchStepText(text)
 	if nil == step {
 		return []string{text}, nil
@@ -318,7 +320,7 @@ func (s *Suite) maybeUndefined(text string, arg interface{}) ([]string, error) {
 		step.args = append(step.args, arg)
 	}
 
-	for _, next := range step.run().(Steps) {
+	for _, next := range step.run(state).(Steps) {
 		lines := strings.Split(next, "\n")
 		// @TODO: we cannot currently parse table or content body from nested steps
 		if len(lines) > 1 {
@@ -327,7 +329,7 @@ func (s *Suite) maybeUndefined(text string, arg interface{}) ([]string, error) {
 		if len(lines[0]) > 0 && lines[0][len(lines[0])-1] == ':' {
 			return undefined, fmt.Errorf("nested steps cannot be multiline and have table or content body argument")
 		}
-		undef, err := s.maybeUndefined(next, nil)
+		undef, err := s.maybeUndefined(state, next, nil)
 		if err != nil {
 			return undefined, err
 		}
@@ -336,7 +338,7 @@ func (s *Suite) maybeUndefined(text string, arg interface{}) ([]string, error) {
 	return undefined, nil
 }
 
-func (s *Suite) maybeSubSteps(result interface{}) error {
+func (s *Suite) maybeSubSteps(state *ScenarioState, result interface{}) error {
 	if nil == result {
 		return nil
 	}
@@ -353,7 +355,7 @@ func (s *Suite) maybeSubSteps(result interface{}) error {
 	for _, text := range steps {
 		if def := s.matchStepText(text); def == nil {
 			return ErrUndefined
-		} else if err := s.maybeSubSteps(def.run()); err != nil {
+		} else if err := s.maybeSubSteps(state, def.run(state)); err != nil {
 			return fmt.Errorf("%s: %+v", text, err)
 		}
 	}
@@ -382,9 +384,9 @@ func (s *Suite) matchStepText(text string) *StepDef {
 	return nil
 }
 
-func (s *Suite) runSteps(steps []*gherkin.Step) (err error) {
+func (s *Suite) runSteps(state *ScenarioState, steps []*gherkin.Step) (err error) {
 	for _, step := range steps {
-		stepErr := s.runStep(step, err)
+		stepErr := s.runStep(state, step, err)
 		switch stepErr {
 		case ErrUndefined:
 			// do not overwrite failed error
@@ -417,10 +419,12 @@ func (s *Suite) runOutline(outline *gherkin.ScenarioOutline, b *gherkin.Backgrou
 		placeholders := example.TableHeader.Cells
 		groups := example.TableBody
 
+		state := &ScenarioState{}
+
 		for _, group := range groups {
 			if !isEmptyScenario(outline) {
 				for _, f := range s.beforeScenarioHandlers {
-					f(outline)
+					f(state, outline)
 				}
 			}
 			var steps []*gherkin.Step
@@ -486,11 +490,11 @@ func (s *Suite) runOutline(outline *gherkin.ScenarioOutline, b *gherkin.Backgrou
 				steps = append(b.Steps, steps...)
 			}
 
-			err := s.runSteps(steps)
+			err := s.runSteps(state, steps)
 
 			if !isEmptyScenario(outline) {
 				for _, f := range s.afterScenarioHandlers {
-					f(outline, err)
+					f(state, outline, err)
 				}
 			}
 
@@ -573,9 +577,12 @@ func (s *Suite) runScenario(scenario *gherkin.Scenario, b *gherkin.Background) (
 		return ErrUndefined
 	}
 
+	// Initialize a state struct for this scenario
+	state := &ScenarioState{}
+
 	// run before scenario handlers
 	for _, f := range s.beforeScenarioHandlers {
-		f(scenario)
+		f(state, scenario)
 	}
 
 	s.fmt.Node(scenario)
@@ -587,11 +594,11 @@ func (s *Suite) runScenario(scenario *gherkin.Scenario, b *gherkin.Background) (
 	}
 
 	// scenario
-	err = s.runSteps(steps)
+	err = s.runSteps(state, steps)
 
 	// run after scenario handlers
 	for _, f := range s.afterScenarioHandlers {
-		f(scenario, err)
+		f(state, scenario, err)
 	}
 
 	return
